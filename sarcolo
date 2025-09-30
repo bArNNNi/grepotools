@@ -15,7 +15,7 @@
     const playerName = Game.player_name || 'Ismeretlen';
     
     // Discord Webhook URL - FONTOS: Itt add meg a webhook URL-t!
-    const DISCORD_WEBHOOK_URL = 'YOUR_DISCORD_WEBHOOK_URL_HERE';
+    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422656911454634195/v20L-RLMi5RBfjoTUtkd3csjVQeL4JLMOvXOorCoZMKgga1UFvHGAM_kNKp56Iy4I2qc';
 
     const timeOptions = {
         300: '5 perc',
@@ -26,7 +26,7 @@
 
     // Discord értesítés küldése
     async function sendDiscordNotification() {
-        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL === 'YOUR_DISCORD_WEBHOOK_URL_HERE') {
+        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL === 'https://discord.com/api/webhooks/1422656911454634195/v20L-RLMi5RBfjoTUtkd3csjVQeL4JLMOvXOorCoZMKgga1UFvHGAM_kNKp56Iy4I2qc') {
             console.warn('⚠️ Discord Webhook URL nincs beállítva');
             return;
         }
