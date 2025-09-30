@@ -9,6 +9,7 @@
     let nextCollectionTime = null;
     let countdownInterval = null;
     let selectedTime = 300;
+    let playerName = Game.player_name;
     
     // Játékos név a loader script-ből
     const playerName = document.querySelector('script[data-player]')?.getAttribute('data-player') || 'Ismeretlen';
