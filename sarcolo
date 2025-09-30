@@ -1,0 +1,361 @@
+// Grepolis Auto Farm Collector - Core Script
+// Ez a fájl kerül GitHubra: farm_collector_core.js
+
+(function() {
+    'use strict';
+
+    let isRunning = false;
+    let intervalTimer = null;
+    let nextCollectionTime = null;
+    let countdownInterval = null;
+    let selectedTime = 300;
+    
+    // Játékos név a loader script-ből
+    const playerName = document.querySelector('script[data-player]')?.getAttribute('data-player') || 'Ismeretlen';
+
+    const timeOptions = {
+        300: '5 perc',
+        1200: '20 perc',
+        5400: '1.5 óra',
+        14400: '4 óra'
+    };
+
+    // UI létrehozása
+    function createUI() {
+        const ui = document.createElement('div');
+        ui.id = 'auto-farm-collector-ui';
+        ui.innerHTML = `
+            <div class="ui-header">
+                <span class="ui-title">🌾 Auto Sarcolás</span>
+                <span class="ui-drag-handle">⋮⋮</span>
+            </div>
+            <div class="ui-content">
+                <div class="license-info">
+                    <span class="license-icon">✓</span>
+                    <span class="license-text">Licencelve: ${playerName}</span>
+                </div>
+                <div class="time-options">
+                    <div class="section-title">Sarcolási gyakoriság:</div>
+                    <label><input type="radio" name="time" value="300" checked> 🕐 5 perc</label>
+                    <label><input type="radio" name="time" value="1200"> 🕐 20 perc</label>
+                    <label><input type="radio" name="time" value="5400"> 🕐 1.5 óra</label>
+                    <label><input type="radio" name="time" value="14400"> 🕐 4 óra</label>
+                </div>
+                <div class="control-buttons">
+                    <button id="start-btn" class="btn btn-start">▶ Start</button>
+                    <button id="stop-btn" class="btn btn-stop" disabled>⏸ Stop</button>
+                </div>
+                <div class="status-box">
+                    <div class="status-row">
+                        <span class="label">Státusz:</span>
+                        <span id="status" class="value">Leállítva</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">Következő:</span>
+                        <span id="countdown" class="value countdown">--:--:--</span>
+                    </div>
+                    <div class="status-row" id="last-collection-row" style="display: none;">
+                        <span class="label">Utolsó:</span>
+                        <span id="last-collection" class="value small">-</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const style = document.createElement('style');
+        style.textContent = `
+            #auto-farm-collector-ui {
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                width: 300px;
+                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                border: 2px solid #f39c12;
+                border-radius: 10px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                z-index: 10000;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                display: none;
+                overflow: hidden;
+            }
+            #auto-farm-collector-ui.visible {
+                display: block;
+                animation: slideInRight 0.4s ease-out;
+            }
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            .ui-header {
+                background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+                padding: 12px 15px;
+                cursor: move;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            }
+            .ui-title {
+                color: white;
+                font-weight: bold;
+                font-size: 15px;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            }
+            .ui-drag-handle {
+                color: rgba(255,255,255,0.8);
+                font-size: 20px;
+                cursor: move;
+                user-select: none;
+            }
+            .ui-content {
+                padding: 16px;
+            }
+            .license-info {
+                background: linear-gradient(135deg, rgba(39, 174, 96, 0.2) 0%, rgba(46, 204, 113, 0.2) 100%);
+                border: 1px solid rgba(39, 174, 96, 0.5);
+                border-radius: 6px;
+                padding: 10px 12px;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .license-icon {
+                color: #2ecc71;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            .license-text {
+                color: #2ecc71;
+                font-size: 12px;
+                font-weight: 600;
+                flex: 1;
+            }
+            .section-title {
+                color: #f39c12;
+                font-size: 12px;
+                font-weight: bold;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .time-options {
+                margin-bottom: 16px;
+            }
+            .time-options label {
+                display: block;
+                color: #ecf0f1;
+                margin-bottom: 10px;
+                cursor: pointer;
+                font-size: 13px;
+                padding: 8px 10px;
+                background: rgba(255,255,255,0.05);
+                border-radius: 5px;
+                transition: all 0.2s;
+                border: 1px solid transparent;
+            }
+            .time-options label:hover {
+                background: rgba(243, 156, 18, 0.15);
+                border-color: rgba(243, 156, 18, 0.3);
+            }
+            .time-options input[type="radio"] {
+                margin-right: 10px;
+                cursor: pointer;
+                accent-color: #f39c12;
+            }
+            .time-options input[type="radio"]:checked + label,
+            .time-options label:has(input:checked) {
+                background: rgba(243, 156, 18, 0.2);
+                border-color: #f39c12;
+                font-weight: 600;
+            }
+            .control-buttons {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 16px;
+            }
+            .btn {
+                flex: 1;
+                padding: 10px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 13px;
+                transition: all 0.3s;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            }
+            .btn-start {
+                background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+                color: white;
+            }
+            .btn-start:hover:not(:disabled) {
+                background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+            }
+            .btn-stop {
+                background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+                color: white;
+            }
+            .btn-stop:hover:not(:disabled) {
+                background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+            }
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none !important;
+            }
+            .btn:active:not(:disabled) {
+                transform: translateY(0) !important;
+            }
+            .status-box {
+                background: rgba(0,0,0,0.3);
+                padding: 12px;
+                border-radius: 6px;
+                border: 1px solid rgba(255,255,255,0.1);
+            }
+            .status-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+                font-size: 12px;
+            }
+            .status-row:last-child {
+                margin-bottom: 0;
+            }
+            .status-row .label {
+                color: rgba(236, 240, 241, 0.7);
+                font-weight: 500;
+            }
+            .status-row .value {
+                color: #f39c12;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            .status-row .value.small {
+                font-size: 11px;
+            }
+            .status-row .value.countdown {
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+                letter-spacing: 1px;
+            }
+            #status.running {
+                color: #2ecc71;
+            }
+            #status.error {
+                color: #e74c3c;
+            }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(ui);
+
+        makeDraggable(ui);
+        attachEventListeners();
+    }
+
+    // Draggable funkció
+    function makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        const header = element.querySelector('.ui-header');
+
+        header.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+            element.style.right = "auto";
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    // Event listener-ek
+    function attachEventListeners() {
+        document.querySelectorAll('input[name="time"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                selectedTime = parseInt(e.target.value);
+                console.log(`⏱️ Új időintervallum: ${timeOptions[selectedTime]}`);
+            });
+        });
+
+        document.getElementById('start-btn').addEventListener('click', startCollection);
+        document.getElementById('stop-btn').addEventListener('click', stopCollection);
+    }
+
+    // Sarcolás végrehajtása
+    function performCollection() {
+        try {
+            updateStatus('Sarcolás...', 'running');
+
+            // 1. Városok kiválasztása
+            const selectAllCheckbox = document.querySelector('.checkbox.select_all');
+            if (selectAllCheckbox && !selectAllCheckbox.classList.contains('checked')) {
+                selectAllCheckbox.click();
+                console.log('✓ Városok kiválasztva');
+            }
+
+            // 2. Idő opció kiválasztása
+            setTimeout(() => {
+                const timeCheckbox = document.querySelector(`.fto_time_checkbox.fto_${selectedTime}`);
+                if (timeCheckbox && !timeCheckbox.classList.contains('active')) {
+                    const checkbox = timeCheckbox.querySelector('.checkbox');
+                    if (checkbox) {
+                        checkbox.click();
+                        console.log(`✓ ${timeOptions[selectedTime]} kiválasztva`);
+                    }
+                }
+
+                // 3. Begyűjtés gomb megnyomása
+                setTimeout(() => {
+                    const claimButton = document.getElementById('fto_claim_button');
+                    if (claimButton) {
+                        claimButton.click();
+                        console.log('✓ Sarcolás végrehajtva');
+                        updateStatus('Futás...', 'running');
+                        updateLastCollection();
+                    } else {
+                        updateStatus('Hiba: Gomb nem található', 'error');
+                        console.error('❌ Begyűjtés gomb nem található');
+                    }
+                }, 500);
+            }, 500);
+
+        } catch (error) {
+            console.error('❌ Hiba a sarcolás során:', error);
+            updateStatus('Hiba történt', 'error');
+        }
+    }
+
+    // Státusz frissítése
+    function updateStatus(text, className = '') {
+        const statusElement = document.getElementById('status');
+        if (statusElement) {
+            statusElement.textContent = text;
+            statusElement.className = 'value ' + className;
