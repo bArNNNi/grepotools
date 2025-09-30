@@ -1,5 +1,6 @@
 // Grepolis Auto Farm Collector - Core Script
 // Ez a fájl kerül GitHubra: farm_collector_core.js
+// Verzió: 1.0
 
 (function() {
     'use strict';
@@ -9,10 +10,9 @@
     let nextCollectionTime = null;
     let countdownInterval = null;
     let selectedTime = 300;
-    let playerName = Game.player_name;
     
     // Játékos név a loader script-ből
-    const playerName = document.querySelector('script[data-player]')?.getAttribute('data-player') || 'Ismeretlen';
+    const playerName = Game.player_name || 'Ismeretlen';
 
     const timeOptions = {
         300: '5 perc',
@@ -360,3 +360,148 @@
         if (statusElement) {
             statusElement.textContent = text;
             statusElement.className = 'value ' + className;
+        }
+    }
+
+    // Utolsó sarcolás idejének frissítése
+    function updateLastCollection() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('hu-HU');
+        const lastCollectionElement = document.getElementById('last-collection');
+        const lastCollectionRow = document.getElementById('last-collection-row');
+        
+        if (lastCollectionElement && lastCollectionRow) {
+            lastCollectionElement.textContent = timeString;
+            lastCollectionRow.style.display = 'flex';
+        }
+    }
+
+    // Visszaszámlálás frissítése
+    function updateCountdown() {
+        const countdownElement = document.getElementById('countdown');
+        if (!countdownElement || !nextCollectionTime) return;
+
+        const now = Date.now();
+        const remaining = nextCollectionTime - now;
+
+        if (remaining <= 0) {
+            countdownElement.textContent = '00:00:00';
+            return;
+        }
+
+        const hours = Math.floor(remaining / 3600000);
+        const minutes = Math.floor((remaining % 3600000) / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+
+        countdownElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Következő sarcolás ütemezése
+    function scheduleNextCollection() {
+        const randomDelay = Math.floor(Math.random() * (220 - 30 + 1)) + 30;
+        const totalDelay = (selectedTime + randomDelay) * 1000;
+        
+        nextCollectionTime = Date.now() + totalDelay;
+        
+        const nextTime = new Date(nextCollectionTime);
+        const minutes = Math.floor((selectedTime + randomDelay) / 60);
+        const seconds = (selectedTime + randomDelay) % 60;
+        
+        console.log(`⏰ Következő sarcolás: ${nextTime.toLocaleTimeString()} (${minutes}p ${seconds}s)`);
+        
+        intervalTimer = setTimeout(() => {
+            performCollection();
+            scheduleNextCollection();
+        }, totalDelay);
+    }
+
+    // Start funkció
+    function startCollection() {
+        if (isRunning) return;
+        
+        isRunning = true;
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('stop-btn').disabled = false;
+        
+        console.log('▶️ Auto sarcolás elindítva');
+        console.log(`⚙️ Beállított időintervallum: ${timeOptions[selectedTime]}`);
+        
+        updateStatus('Indítás...', 'running');
+        
+        // Első sarcolás azonnal
+        performCollection();
+        
+        // Következő ütemezése
+        setTimeout(() => {
+            scheduleNextCollection();
+        }, 2000);
+        
+        // Visszaszámlálás indítása
+        countdownInterval = setInterval(updateCountdown, 1000);
+    }
+
+    // Stop funkció
+    function stopCollection() {
+        if (!isRunning) return;
+        
+        isRunning = false;
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('stop-btn').disabled = true;
+        
+        if (intervalTimer) {
+            clearTimeout(intervalTimer);
+            intervalTimer = null;
+        }
+        
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        
+        nextCollectionTime = null;
+        updateStatus('Leállítva');
+        document.getElementById('countdown').textContent = '--:--:--';
+        
+        console.log('⏸️ Auto sarcolás leállítva');
+    }
+
+    // UI megjelenítésének ellenőrzése
+    function checkUIVisibility() {
+        const farmTownWrapper = document.getElementById('fto_town_wrapper');
+        const ui = document.getElementById('auto-farm-collector-ui');
+        
+        if (farmTownWrapper && ui) {
+            ui.classList.add('visible');
+        } else if (ui) {
+            ui.classList.remove('visible');
+            // Ha bezárták az ablakot, állítsuk le a sarcolást
+            if (isRunning) {
+                console.log('⚠️ Sarcolási ablak bezárva, leállítás...');
+                stopCollection();
+            }
+        }
+    }
+
+    // Inicializálás
+    function init() {
+        console.log('='.repeat(50));
+        console.log('🌾 Auto Farm Collector - Core Script');
+        console.log('👤 Felhasználó:', playerName);
+        console.log('='.repeat(50));
+        
+        createUI();
+        
+        // UI láthatóság ellenőrzése
+        setInterval(checkUIVisibility, 1000);
+        
+        console.log('✅ UI létrehozva és készen áll a használatra');
+    }
+
+    // Indítás
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+})();
