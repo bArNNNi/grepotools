@@ -1,6 +1,6 @@
 // Grepolis Auto Farm Collector - Core Script
 // Ez a fájl kerül GitHubra: farm_collector_core.js
-// Verzió: 1.1 - Discord Webhook támogatással
+// Verzió: 1.0
 
 (function() {
     'use strict';
@@ -13,9 +13,6 @@
     
     // Játékos név a loader script-ből
     const playerName = Game.player_name || 'Ismeretlen';
-    
-    // Discord Webhook URL - FONTOS: Itt add meg a webhook URL-t!
-    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422656911454634195/v20L-RLMi5RBfjoTUtkd3csjVQeL4JLMOvXOorCoZMKgga1UFvHGAM_kNKp56Iy4I2qc';
 
     const timeOptions = {
         300: '5 perc',
@@ -23,71 +20,6 @@
         5400: '1.5 óra',
         14400: '4 óra'
     };
-
-    // Discord értesítés küldése
-    async function sendDiscordNotification() {
-        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL === 'https://discord.com/api/webhooks/1422656911454634195/v20L-RLMi5RBfjoTUtkd3csjVQeL4JLMOvXOorCoZMKgga1UFvHGAM_kNKp56Iy4I2qc') {
-            console.warn('⚠️ Discord Webhook URL nincs beállítva');
-            return;
-        }
-
-        try {
-            const now = new Date();
-            const timestamp = now.toLocaleString('hu-HU', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-
-            const embed = {
-                embeds: [{
-                    title: '🌾 Auto Farm Collector Betöltve',
-                    description: 'A script sikeresen elindult!',
-                    color: 15844367, // Narancssárga szín (#f39c12)
-                    fields: [
-                        {
-                            name: '👤 Játékos',
-                            value: playerName,
-                            inline: true
-                        },
-                        {
-                            name: '🕐 Időpont',
-                            value: timestamp,
-                            inline: true
-                        },
-                        {
-                            name: '🌍 Szerver',
-                            value: window.location.hostname,
-                            inline: false
-                        }
-                    ],
-                    footer: {
-                        text: 'Grepolis Auto Farm Collector v1.1'
-                    },
-                    timestamp: now.toISOString()
-                }]
-            };
-
-            const response = await fetch(DISCORD_WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(embed)
-            });
-
-            if (response.ok) {
-                console.log('✅ Discord értesítés elküldve');
-            } else {
-                console.error('❌ Discord értesítés küldése sikertelen:', response.status);
-            }
-        } catch (error) {
-            console.error('❌ Hiba a Discord értesítés küldése során:', error);
-        }
-    }
 
     // UI létrehozása
     function createUI() {
@@ -553,7 +485,7 @@
     // Inicializálás
     function init() {
         console.log('='.repeat(50));
-        console.log('🌾 Auto Farm Collector - Core Script v1.1');
+        console.log('🌾 Auto Farm Collector - Core Script');
         console.log('👤 Felhasználó:', playerName);
         console.log('='.repeat(50));
         
@@ -561,9 +493,6 @@
         
         // UI láthatóság ellenőrzése
         setInterval(checkUIVisibility, 1000);
-        
-        // Discord értesítés küldése
-        sendDiscordNotification();
         
         console.log('✅ UI létrehozva és készen áll a használatra');
     }
