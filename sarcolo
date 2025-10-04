@@ -60,7 +60,7 @@
                         <span id="last-collection" class="value small">-</span>
                     </div>
                 </div>
-                Készítette: bArNNNi | 2025
+                <div align="right"><font face color="grey"><small>Készítette: bArNNNi | 2025</small></font></div>
             </div>
         `;
 
