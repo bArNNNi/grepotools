@@ -59,6 +59,7 @@
                         <span class="label">Utolsó:</span>
                         <span id="last-collection" class="value small">-</span>
                     </div>
+<div><span id="last-collection" class="value small">Készítette: bArNNNi | 2025</span></div>
                 </div>
             </div>
         `;
