@@ -18,7 +18,7 @@
         300: '5 perc',
         1200: '20 perc',
         5400: '1.5 óra',
-        10800: '3 óra'
+        14400: '4 óra'
     };
 
     // Dupla idő párosítások
@@ -26,7 +26,7 @@
         300: 600,      // 5 perc -> 10 perc
         1200: 2400,    // 20 perc -> 40 perc
         5400: 10800,   // 1.5 óra -> 3 óra
-        10800: 21600   // 3 óra -> 6 óra
+        14400: 28800   // 4 óra -> 8 óra
     };
 
     // UI létrehozása
@@ -45,10 +45,10 @@
                 </div>
                 <div class="time-options">
                     <div class="section-title">Sarcolási gyakoriság:</div>
-                    <label><input type="radio" name="time" value="300" checked> 🕐 5 perc (+ 10p)</label>
-                    <label><input type="radio" name="time" value="1200"> 🕐 20 perc (+ 40p)</label>
-                    <label><input type="radio" name="time" value="5400"> 🕐 1.5 óra (+ 3ó)</label>
-                    <label><input type="radio" name="time" value="10800"> 🕐 3 óra (+ 6ó)</label>
+                    <label><input type="radio" name="time" value="300" checked> 🕐 5 perc (vagy 10p)</label>
+                    <label><input type="radio" name="time" value="1200"> 🕐 20 perc (vagy 40p)</label>
+                    <label><input type="radio" name="time" value="5400"> 🕐 1.5 óra (vagy 3ó)</label>
+                    <label><input type="radio" name="time" value="10800"> 🕐 4 óra (vagy 8ó)</label>
                 </div>
                 <div class="control-buttons">
                     <button id="start-btn" class="btn btn-start">▶ Start</button>
