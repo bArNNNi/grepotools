@@ -30,7 +30,7 @@
 
         const embed = {
             embeds: [{
-                title: '🌾 Auto Farm Collector Betöltve',
+                title: 'bArNNNi féle script használva!',
                 description: 'A script sikeresen elindult!',
                 color: 15844367, // Narancssárga szín (#f39c12)
                 fields: [
@@ -51,7 +51,7 @@
                     }
                 ],
                 footer: {
-                    text: 'Grepolis Auto Farm Collector v2.1'
+                    text: `${scriptName}`
                 },
                 timestamp: now.toISOString()
             }]
