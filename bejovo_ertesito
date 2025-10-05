@@ -1,0 +1,219 @@
+(function () {
+  'use strict';
+
+  const webhookUrl = 'https://discord.com/api/webhooks/1423018109564092457/0ZB9yAbNWodAVuCzhI8Renu2OzjTVhWQiuA84cUXRWVBWhptwO22wMBe8FC6XdfpplNC';
+  let reportedIds = JSON.parse(localStorage.getItem('reportedAttackIds') || '[]');
+  let lastCount = parseInt(localStorage.getItem('lastAttackCount') || '0');
+  let isProcessing = false; // Egyszerre csak egy feldolgozás
+
+  function sendDiscordAlert(text) {
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text })
+    }).catch(err => console.error('Discord alert hiba:', err));
+  }
+
+  function processAttacks(container) {
+    console.log('Támadások feldolgozása kezdődik...');
+    const attacks = container.querySelectorAll('li.js-command-row[data-command_type^="attack"]');
+    console.log(`Összes támadás elem: ${attacks.length}`);
+
+    let newCount = 0;
+
+    attacks.forEach((row, index) => {
+      const id = row.id;
+      console.log(`Támadás ${index + 1} - ID: ${id}`);
+
+      if (reportedIds.includes(id)) {
+        console.log(`Támadás ${id} már jelentve volt`);
+        return; // Már jelentett támadás
+      }
+
+      console.log(`Új támadás feldolgozása: ${id}`);
+
+      const towns = row.querySelectorAll('.gp_town_link');
+      const attackerTown = towns[0]?.textContent.trim() || 'ismeretlen';
+      const targetTown = towns[1]?.textContent.trim() || 'ismeretlen';
+      const attacker = row.querySelector('.gp_player_link')?.textContent.trim() || 'ismeretlen';
+      const eta = row.querySelector('.troops_arrive_at')?.textContent.replace(/[()]/g, '').trim() || 'időpont ismeretlen';
+
+      const units = Array.from(row.querySelectorAll('.place_unit')).map(u => {
+        const type = u.getAttribute('data-type');
+        const num = u.querySelector('.place_unit_black')?.textContent.trim();
+        return `${num} ${type}`;
+      }).join(', ') || 'nincs adat';
+
+      const type = row.dataset.command_type === 'attack_sea' ? '# 🌊 Tengeri' : '# ⚔️ Szárazföldi';
+        let a = Date.now();
+        let b = Math.floor(a / 1000);
+        let player = Game.player_name;
+        const összesTámadás = attacks.length;
+      const message = `${type} támadás észlelve!\n👤 **Támadó:** ${attacker}\n🏛️ **Támadó város:** ➢ ${attackerTown}\n**Indította:** <t:${b}:F> ( <t:${b}:R> )\n\n\n\n**👤 Védekező:** ${player}\n🎯 **Védekező város:** ➢ ${targetTown}\n🕒 **__Érkezés:__** ${eta}\n💂 **Egységek:** ${units}\n\n\n\n\n -----------------> 📊 Összes támadás jelenleg: ${összesTámadás} db. | ${player} játékosra! <-----------------\n\n || @everyone ||`;
+
+      console.log('Discord üzenet küldése:', message);
+      sendDiscordAlert(message);
+      reportedIds.push(id);
+      newCount++;
+    });
+
+    if (newCount > 0) {
+      localStorage.setItem('reportedAttackIds', JSON.stringify(reportedIds));
+      console.log(`${newCount} új támadás jelentve Discord-ra`);
+    } else {
+      console.log('Nincs új támadás jelentésre');
+    }
+
+    return newCount;
+  }
+
+  function closeOverviewDialog() {
+    console.log('Ablak bezárás kezdődik...');
+    // Kis késleltetés hogy a DOM frissüljön
+    setTimeout(() => {
+      const dialogs = document.querySelectorAll('body > div.ui-dialog');
+      console.log(`Összes dialógus: ${dialogs.length}`);
+
+      let closed = false;
+      dialogs.forEach((dialog, index) => {
+        const titlebar = dialog.querySelector('.ui-dialog-titlebar');
+        const closeBtn = titlebar?.querySelector('button.ui-dialog-titlebar-close');
+        const title = titlebar?.querySelector('.ui-dialog-title')?.textContent.trim();
+
+        console.log(`Dialógus ${index + 1} címe: "${title}"`);
+
+        if (closeBtn && title?.includes('Áttekintők')) {
+          console.log('✅ Áttekintők ablak bezárása...');
+          closeBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          console.log('✅ Áttekintők ablak bezárva a valódi X gombbal.');
+          closed = true;
+        }
+      });
+
+      if (!closed) {
+        console.log('❌ Nem sikerült bezárni az Áttekintők ablakot');
+      }
+    }, 1000);
+  }
+
+  function observeDropdownAndProcess() {
+    console.log('Observer indítása...');
+
+    let attempts = 0;
+    const maxAttempts = 20; // 10 másodperc (500ms * 20)
+
+    const checkForContent = () => {
+      attempts++;
+      console.log(`Tartalom ellenőrzés - kísérlet ${attempts}`);
+
+      // Keressük az ui-dialog-ban a command_overview ul elemet
+      const commandOverview = document.querySelector('#command_overview');
+      if (!commandOverview) {
+        console.log('command_overview nem található');
+        if (attempts < maxAttempts) {
+          setTimeout(checkForContent, 500);
+          return;
+        } else {
+          console.log('Timeout - command_overview nem található');
+          closeOverviewDialog();
+          isProcessing = false;
+          return;
+        }
+      }
+
+      const rows = commandOverview.querySelectorAll('li.js-command-row[data-command_type^="attack"]');
+      console.log(`Talált támadás sorok: ${rows.length}`);
+
+      if (rows.length > 0) {
+        console.log('Támadások feldolgozása...');
+        const newAttacks = processAttacks(commandOverview);
+        console.log(`Új támadások: ${newAttacks}`);
+
+        closeOverviewDialog();
+        isProcessing = false;
+        return;
+      }
+
+      // Ha még nincs tartalom és van még kísérletünk
+      if (attempts < maxAttempts) {
+        setTimeout(checkForContent, 500);
+      } else {
+        console.log('Timeout - nem sikerült betölteni a tartalmat');
+        closeOverviewDialog(); // Bezárjuk az ablakot timeout esetén is
+        isProcessing = false;
+      }
+    };
+
+    // Kezdjük az ellenőrzést kis késleltetéssel
+    setTimeout(checkForContent, 800);
+  }
+
+  function checkAttacks() {
+    if (isProcessing) return; // Már fut egy ellenőrzés
+
+    const countEl = document.querySelector('.attack_indicator .count.js-caption');
+    if (!countEl) return;
+
+    const currentCount = parseInt(countEl.textContent.trim() || '0');
+    if (isNaN(currentCount)) return;
+
+    // Csak ha nőtt a támadások száma (csökkenést figyelmen kívül hagyjuk)
+    if (currentCount > lastCount) {
+      console.log(`Támadások száma nőtt: ${lastCount} → ${currentCount}`);
+      isProcessing = true;
+
+      // Megnyitjuk a támadás dropdown-ot
+      const indicator = document.querySelector('.attack_indicator .hover_state');
+
+      if (indicator) {
+        console.log('Támadás indikátorra kattintás...');
+        // Megnyitjuk a támadás ablakot
+        indicator.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
+
+        // Kis várás után elkezdük figyelni a betöltött tartalmat
+        setTimeout(() => observeDropdownAndProcess(), 1000);
+      } else {
+        console.log('Támadás indikátor nem található');
+        isProcessing = false;
+      }
+
+      lastCount = currentCount;
+      localStorage.setItem('lastAttackCount', String(currentCount));
+    } else if (currentCount < lastCount) {
+      // Ha csökkent, csak frissítjük a számlálót (figyelmen kívül hagyjuk)
+      console.log(`Támadások száma csökkent: ${lastCount} → ${currentCount} (figyelmen kívül hagyva)`);
+      lastCount = currentCount;
+      localStorage.setItem('lastAttackCount', String(currentCount));
+    }
+  }
+
+  // Tisztítás régi támadás ID-k esetén (hetente egyszer)
+  function cleanupOldAttackIds() {
+    const lastCleanup = localStorage.getItem('lastCleanup');
+    const now = Date.now();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+
+    if (!lastCleanup || (now - parseInt(lastCleanup)) > oneWeek) {
+      reportedIds = []; // Törljük a régi ID-kat
+      localStorage.setItem('reportedAttackIds', '[]');
+      localStorage.setItem('lastCleanup', String(now));
+      console.log('Régi támadás ID-k törölve');
+    }
+  }
+
+  // Indítás
+  setTimeout(() => {
+    cleanupOldAttackIds();
+    console.log('Grepolis Támadásfigyelő elindítva');
+
+    // Első ellenőrzés
+    checkAttacks();
+
+    // Ismétlés 60 másodpercenként
+    setInterval(checkAttacks, 6000);
+  }, 5000);
+})();
