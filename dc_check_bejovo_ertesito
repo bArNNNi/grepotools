@@ -1,0 +1,87 @@
+// Discord Notifier Script - GitHub verzió
+// Ez a fájl kerül Base64-ben kódolva a loader scriptbe
+// Verzió: 1.0
+
+(function() {
+    'use strict';
+
+    // Discord Webhook URL - FONTOS: Itt add meg a webhook URL-t!
+    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422656911454634195/v20L-RLMi5RBfjoTUtkd3csjVQeL4JLMOvXOorCoZMKgga1UFvHGAM_kNKp56Iy4I2qc';
+
+    // Játékos név lekérése
+    const playerName = Game.player_name || 'Ismeretlen';
+
+    // Discord értesítés küldése
+    function sendDiscordNotification() {
+        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL === 'YOUR_DISCORD_WEBHOOK_URL_HERE') {
+            console.warn('⚠️ Discord Webhook URL nincs beállítva');
+            return;
+        }
+
+        const now = new Date();
+        const timestamp = now.toLocaleString('hu-HU', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        const embed = {
+            embeds: [{
+                title: 'bArNNNi féle script használva!',
+                description: 'A script sikeresen elindult!',
+                color: 15844367, // Narancssárga szín (#f39c12)
+                fields: [
+                    {
+                        name: '👤 Játékos',
+                        value: playerName,
+                        inline: true
+                    },
+                    {
+                        name: '🕐 Időpont',
+                        value: timestamp,
+                        inline: true
+                    },
+                    {
+                        name: '🌍 Szerver',
+                        value: window.location.hostname,
+                        inline: false
+                    }
+                ],
+                footer: {
+                    text: '[GREPO] - 🛡️ DC-re jelző Támadás'
+                },
+                timestamp: now.toISOString()
+            }]
+        };
+
+        // XMLHttpRequest használata Discord webhook-hoz
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', DISCORD_WEBHOOK_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onload = function() {
+            if (xhr.status === 204 || xhr.status === 200) {
+                console.log('✅ Discord értesítés sikeresen elküldve');
+                console.log(`📤 Játékos: ${playerName}`);
+                console.log(`📅 Időpont: ${timestamp}`);
+            } else {
+                console.error('❌ Discord értesítés küldése sikertelen:', xhr.status, xhr.statusText);
+            }
+        };
+        
+        xhr.onerror = function() {
+            console.error('❌ Hiba a Discord értesítés küldése során');
+        };
+        
+        xhr.send(JSON.stringify(embed));
+    }
+
+    // Értesítés küldése
+    console.log('📬 Discord Notifier betöltve');
+    console.log('👤 Játékos:', playerName);
+    sendDiscordNotification();
+
+})();
