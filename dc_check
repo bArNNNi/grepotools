@@ -51,7 +51,7 @@
                     }
                 ],
                 footer: {
-                    text: `${scriptName}`
+                    text: `🚀 Grepolis Auto Farm Collector`
                 },
                 timestamp: now.toISOString()
             }]
